@@ -11,7 +11,8 @@
 #define LINE_THICKNESS 2.5
 
 #define HELI_FRAME_COUNT 4
-#define HELI_SPEED 5
+#define HELI_SPEED 4
+#define GRAVITY .1;
 
 int
 main(void)
@@ -27,7 +28,7 @@ main(void)
     //Texture2D sprite = LoadTexture("heli-1.png");
     Sound sound = LoadSound("");
     Music music = LoadMusicStream("assets/sound/airwolf.mp3");
-    //PlayMusicStream(music);
+    // PlayMusicStream(music);
 
     Vector2 position = { 320.0f, 226.0f };
     Rectangle frame_rec = { 0.0f, 0.0f, (float)helicopter_texture.width, (float)helicopter_texture.height/HELI_FRAME_COUNT };
@@ -48,7 +49,7 @@ main(void)
     while (!WindowShouldClose()) {
         // update section
 
-        if (IsKeyPressed(KEY_M)) {
+        if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
             // TODO: look into volume adjustment instead
             if (IsMusicStreamPlaying(music)) {
                 StopMusicStream(music);
@@ -58,6 +59,10 @@ main(void)
         }
 
         UpdateMusicStream(music);
+
+        if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_SPACE)) {
+            helicopter_velocity.y = -HELI_SPEED;
+        }
 
         // Control frames speed
         if (IsKeyDown(KEY_RIGHT)) {
@@ -78,6 +83,8 @@ main(void)
         frames_counter++;
 
         position = Vector2Add(position, helicopter_velocity);
+
+        helicopter_velocity.y += GRAVITY;
 
         if (frames_counter >= (FPS/frames_speed)) {
             frames_counter = 0;
