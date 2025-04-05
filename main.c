@@ -2,8 +2,6 @@
 
 #include <raylib.h>
 
-#include "raylib-tmx.h"
-
 #define MAX_FRAME_SPEED 15
 #define MIN_FRAME_SPEED  1
 
@@ -11,160 +9,87 @@
 
 #define LINE_THICKNESS 2.5
 
-void draw_polyline(double offset_x, double offset_y, double **points, int points_count, Color color) {
-  int i;
-  for (i=1; i<points_count; i++) {
-    DrawLineEx((Vector2){offset_x + points[i-1][0], offset_y + points[i-1][1]},
-               (Vector2){offset_x + points[i][0], offset_y + points[i][1]},
-               LINE_THICKNESS, color);
-  }
-}
+typedef struct {
+    Texture2D texture;
+    Rectangle dest_rect;
+    Vector2 velocity;
+} helicopter_t;
 
-void draw_polygon(double offset_x, double offset_y, double **points, int points_count, Color color) {
-  draw_polyline(offset_x, offset_y, points, points_count, color);
-  if (points_count > 2) {
-    DrawLineEx((Vector2){offset_x + points[0][0], offset_y + points[0][1]},
-               (Vector2){offset_x + points[points_count-1][0], offset_y + points[points_count-1][1]},
-               LINE_THICKNESS, color);
-  }
-}
+void
+move_helicopter(helicopter_t *helicopter)
+{
+    helicopter->velocity.x = 0.0f;
 
-void draw_objects(tmx_object_group *objgr) {
-  tmx_object *head = objgr->head;
-  Color color = int_to_color(objgr->color);
-
-  while (head) {
-    if (head->visible) {
-      if (head->obj_type == OT_SQUARE) {
-        DrawRectangleLinesEx((Rectangle){head->x, head->y, head->width, head->height}, LINE_THICKNESS, color);
-      }
-      else if (head->obj_type  == OT_POLYGON) {
-        draw_polygon(head->x, head->y, head->content.shape->points, head->content.shape->points_len, color);
-      }
-      else if (head->obj_type == OT_POLYLINE) {
-        draw_polyline(head->x, head->y, head->content.shape->points, head->content.shape->points_len, color);
-      }
-      else if (head->obj_type == OT_ELLIPSE) {
-        DrawEllipseLines(head->x + head->width/2.0, head->y + head->height/2.0, head->width/2.0, head->height/2.0, color);
-      }
+    if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) {
+        helicopter->velocity.x = 100;
     }
-    head = head->next;
-  }
+    if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) {
+        helicopter->dest_rect.x = -100;
+    }
 }
 
-void draw_tile(void *image, unsigned int sx, unsigned int sy, unsigned int sw, unsigned int sh,
-    unsigned int dx, unsigned int dy, float opacity, unsigned int flags) {
-DrawTextureRec((Texture2D)image, (Rectangle) {sx, sy, sw, sh}, (Vector2) {dx, dy}, (Color) {opacity, opacity, opacity, opacity});
+void
+apply_gravity(helicopter_t *helicopter)
+{
+    helicopter->velocity.y += 10.0f;
+
+    if (helicopter->velocity.y > 200.0f) {
+        helicopter->velocity.y = 200.0f;
+    }
 }
 
-void draw_layer(tmx_map *map, tmx_layer *layer) {
-    unsigned long i, j;
-    unsigned int gid, x, y, w, h, flags;
-    float op;
-    tmx_tileset *ts;
-    tmx_image *im;
-    void* image;
-    op = layer->opacity;
-    for (i=0; i<map->height; i++) {
-      for (j=0; j<map->width; j++) {
-        gid = (layer->content.gids[(i*map->width)+j]) & TMX_FLIP_BITS_REMOVAL;
-        if (map->tiles[gid] != NULL) {
-          ts = map->tiles[gid]->tileset;
-          im = map->tiles[gid]->image;
-          x  = map->tiles[gid]->ul_x;
-          y  = map->tiles[gid]->ul_y;
-          w  = ts->tile_width;
-          h  = ts->tile_height;
-          if (im) {
-            image = im->resource_image;
-          }
-          else {
-            image = ts->image->resource_image;
-          }
-          flags = (layer->content.gids[(i*map->width)+j]) & ~TMX_FLIP_BITS_REMOVAL;
-          draw_tile(image, x, y, w, h, j*ts->tile_width, i*ts->tile_height, op, flags); // Function to be implemented
-        }
-      }
-    }
-  }
-
-void draw_image_layer(tmx_image *image) {
-    Texture2D *texture = (Texture2D*)image->resource_image;
-    DrawTexture(*texture, 0, 0, WHITE);
-  }
-
-void draw_all_layers(tmx_map *map, tmx_layer *layers) {
-    while (layers) {
-      if (layers->visible) {
-  
-        if (layers->type == L_GROUP) {
-          draw_all_layers(map, layers->content.group_head); // recursive call
-        }
-        else if (layers->type == L_OBJGR) {
-          draw_objects(layers->content.objgr); // Function to be implemented
-        }
-        else if (layers->type == L_IMAGE) {
-          draw_image_layer(layers->content.image); // Function to be implemented
-        }
-        else if (layers->type == L_LAYER) {
-          draw_layer(map, layers); // Function to be implemented
-        }
-      }
-      layers = layers->next;
-    }
-  }
-
-  
-Color int_to_color(int color) {
-    tmx_col_bytes res = tmx_col_to_bytes(color);
-    return *((Color*)&res);
-  }
-  
-  void render_map(tmx_map *map) {
-    ClearBackground(int_to_color(map->backgroundcolor));
-    draw_all_layers(map, map->ly_head); // Function to be implemented
-  }
-
-  void* raylib_tex_loader(const char *path) {
-    Texture2D *returnValue = malloc(sizeof(Texture2D));
-    *returnValue = LoadTexture(path);
-    return returnValue;
-  }
-  
-  void raylib_free_tex(void *ptr)
-  {
-    UnloadTexture(*((Texture2D*)ptr));
-    free(ptr);
-  }
+void
+apply_velocity(helicopter_t *helicopter)
+{
+    helicopter->velocity.x += helicopter->velocity.x * GetFrameTime();
+    helicopter->velocity.y += helicopter->velocity.y * GetFrameTime();
+}
 
 int
 main(void)
 {
-    InitWindow(800, 450, "Helicopter");
+    InitWindow(1024, 768, "Helicopter");
     InitAudioDevice();
-
-    tmx_map *map = tmx_load("helicopter.tmx");
-    tmx_img_load_func = raylib_tex_loader;
-    tmx_img_free_func = raylib_free_tex;
 
     // spritesheet
     // width: 226
     // height: 320
     // sprite: w 226 x h 80
-    Texture2D helicopter = LoadTexture("helicopter-spritesheet.png");
+    Texture2D helicopter_texture = LoadTexture("assets/helicopter-spritesheet.png");
     //Texture2D sprite = LoadTexture("heli-1.png");
     Sound sound = LoadSound("");
-    Music music = LoadMusicStream("airwolf.mp3");
+    Music music = LoadMusicStream("assets/sound/airwolf.mp3");
     //PlayMusicStream(music);
 
     Vector2 position = { 320.0f, 226.0f };
-    Rectangle frame_rec = { 0.0f, 0.0f, (float)helicopter.width, (float)helicopter.height/4 };
+    Rectangle frame_rec = { 0.0f, 0.0f, (float)helicopter_texture.width, (float)helicopter_texture.height/4 };
     int current_frame = 0;
 
     int frames_counter = 0;
     int frames_speed = 8; 
 
     SetTargetFPS(FPS);
+
+    helicopter_t helicopter = (helicopter_t) {
+      .texture = helicopter_texture,
+    //   .dest_rect = (Rectangle) {
+    //     .x = 10.0f,
+    //     .y = 100.0f,
+    //     .width = 100.0f,
+    //     .height = 100.0f
+    //   }
+        .dest_rect = (Rectangle) {
+            0.0f, 0.0f,
+            (float)helicopter_texture.width,
+            (float)helicopter_texture.height/4
+        }
+    };
+
+    Camera2D camera = {0};
+    camera.target = position;
+    camera.offset = (Vector2){ 1024/2.0f, 768/2.0f };
+    camera.rotation = 0.0f;
+    camera.zoom = 1.0f;
 
     while (!WindowShouldClose()) {
         // update section
@@ -190,8 +115,12 @@ main(void)
                 current_frame = 0;
             }
 
-            frame_rec.y = (float)current_frame*(float)helicopter.height/4;
+            helicopter.dest_rect.y = (float)current_frame*(float)helicopter_texture.height/4;
         }
+
+        move_helicopter(&helicopter);
+        apply_gravity(&helicopter);
+        apply_velocity(&helicopter);
 
         // Control frames speed
         if (IsKeyPressed(KEY_RIGHT)) {
@@ -206,15 +135,18 @@ main(void)
             frames_speed = MIN_FRAME_SPEED;
         }
 
+        camera.target = position;
+        camera.offset = (Vector2){ 1024/2.0f, 768/2.0f };
+        float minX = 1000, minY = 1000, maxX = -1000, maxY = -1000;
+
         // draw section
         BeginDrawing();
             ClearBackground(BLACK);
-            DrawTMX(map, 0, 0, WHITE);
 
             //DrawTexture(helicopter, 80, 71, WHITE);
 
             //DrawRectangleLines(80, 71, helicopter.width, helicopter.height, LIME);
-            //DrawRectangleLines(80 + (int)frame_rec.x, 80 + (int)frame_rec.y, (int)frame_rec.width, (int)frame_rec.height, RED);
+            //DrawRectangleLines(80 + (int)helicopter.dest_rect.x, 80 + (int)helicopter.dest_rect.y, (int)helicopter.dest_rect.width, (int)helicopter.dest_rect.height, RED);
 
             //DrawText("FRAME SPEED: ", 165, 210, 10, DARKGRAY);
             //DrawText(TextFormat("%02i FPS", frames_speed), 575, 210, 10, DARKGRAY);
@@ -226,15 +158,16 @@ main(void)
             //     DrawRectangleLines(250 + 21*i, 205, 20, 20, MAROON);
             // }
 
-            DrawTextureRec(helicopter, frame_rec, position, WHITE);  // Draw part of the texture
+            //DrawTextureRec(helicopter_texture, helicopter.dest_rect, position, WHITE);  // Draw part of the texture
+            DrawTextureRec(helicopter.texture, helicopter.dest_rect, position, WHITE);  // Draw part of the texture
+            //DrawTexturePro(helicopter.texture, (Rectangle){0, 0, 64, 64}, helicopter.dest_rect, (Vector2){80, 71}, 0, WHITE);
 
         EndDrawing();
     }
 
-    UnloadTexture(helicopter);
+    UnloadTexture(helicopter_texture);
     StopMusicStream(music);
     CloseAudioDevice();
-    tmx_map_free(map);
     CloseWindow();
 
     return 0;
