@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
 #include <raylib.h>
+#include <raymath.h>
 
 #define MAX_FRAME_SPEED 15
 #define MIN_FRAME_SPEED  1
@@ -9,41 +10,8 @@
 
 #define LINE_THICKNESS 2.5
 
-typedef struct {
-    Texture2D texture;
-    Rectangle dest_rect;
-    Vector2 velocity;
-} helicopter_t;
-
-void
-move_helicopter(helicopter_t *helicopter)
-{
-    helicopter->velocity.x = 0.0f;
-
-    if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) {
-        helicopter->velocity.x = 100;
-    }
-    if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) {
-        helicopter->dest_rect.x = -100;
-    }
-}
-
-void
-apply_gravity(helicopter_t *helicopter)
-{
-    helicopter->velocity.y += 10.0f;
-
-    if (helicopter->velocity.y > 200.0f) {
-        helicopter->velocity.y = 200.0f;
-    }
-}
-
-void
-apply_velocity(helicopter_t *helicopter)
-{
-    helicopter->velocity.x += helicopter->velocity.x * GetFrameTime();
-    helicopter->velocity.y += helicopter->velocity.y * GetFrameTime();
-}
+#define HELI_FRAME_COUNT 4
+#define HELI_SPEED 5
 
 int
 main(void)
@@ -62,28 +30,14 @@ main(void)
     //PlayMusicStream(music);
 
     Vector2 position = { 320.0f, 226.0f };
-    Rectangle frame_rec = { 0.0f, 0.0f, (float)helicopter_texture.width, (float)helicopter_texture.height/4 };
+    Rectangle frame_rec = { 0.0f, 0.0f, (float)helicopter_texture.width, (float)helicopter_texture.height/HELI_FRAME_COUNT };
+    Vector2 helicopter_velocity = (Vector2){0.0f, 0.0f};
     int current_frame = 0;
 
     int frames_counter = 0;
     int frames_speed = 8; 
 
     SetTargetFPS(FPS);
-
-    helicopter_t helicopter = (helicopter_t) {
-      .texture = helicopter_texture,
-    //   .dest_rect = (Rectangle) {
-    //     .x = 10.0f,
-    //     .y = 100.0f,
-    //     .width = 100.0f,
-    //     .height = 100.0f
-    //   }
-        .dest_rect = (Rectangle) {
-            0.0f, 0.0f,
-            (float)helicopter_texture.width,
-            (float)helicopter_texture.height/4
-        }
-    };
 
     Camera2D camera = {0};
     camera.target = position;
@@ -105,7 +59,25 @@ main(void)
 
         UpdateMusicStream(music);
 
+        // Control frames speed
+        if (IsKeyDown(KEY_RIGHT)) {
+            helicopter_velocity.x = HELI_SPEED;
+            if (frame_rec.width < 0) {
+                frame_rec.width = -frame_rec.width;
+            }
+        } else if (IsKeyDown(KEY_LEFT)) {
+            helicopter_velocity.x = -HELI_SPEED;
+            if (frame_rec.width > 0) {
+                frame_rec.width = -frame_rec.width;
+            }
+        } else {
+            helicopter_velocity.x = 0;
+        }
+        bool helicopyter_moving = helicopter_velocity.x != 0.0f || helicopter_velocity.y != 0.0f;
+
         frames_counter++;
+
+        position = Vector2Add(position, helicopter_velocity);
 
         if (frames_counter >= (FPS/frames_speed)) {
             frames_counter = 0;
@@ -115,18 +87,7 @@ main(void)
                 current_frame = 0;
             }
 
-            helicopter.dest_rect.y = (float)current_frame*(float)helicopter_texture.height/4;
-        }
-
-        move_helicopter(&helicopter);
-        apply_gravity(&helicopter);
-        apply_velocity(&helicopter);
-
-        // Control frames speed
-        if (IsKeyPressed(KEY_RIGHT)) {
-            frames_speed++;
-        } else if (IsKeyPressed(KEY_LEFT)) {
-            frames_speed--;
+            frame_rec.y = (float)current_frame*(float)helicopter_texture.height/HELI_FRAME_COUNT;
         }
 
         if (frames_speed > MAX_FRAME_SPEED) {
@@ -158,9 +119,7 @@ main(void)
             //     DrawRectangleLines(250 + 21*i, 205, 20, 20, MAROON);
             // }
 
-            //DrawTextureRec(helicopter_texture, helicopter.dest_rect, position, WHITE);  // Draw part of the texture
-            DrawTextureRec(helicopter.texture, helicopter.dest_rect, position, WHITE);  // Draw part of the texture
-            //DrawTexturePro(helicopter.texture, (Rectangle){0, 0, 64, 64}, helicopter.dest_rect, (Vector2){80, 71}, 0, WHITE);
+            DrawTextureRec(helicopter_texture, frame_rec, position, WHITE);  // Draw part of the texture
 
         EndDrawing();
     }
