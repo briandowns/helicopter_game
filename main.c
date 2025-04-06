@@ -155,7 +155,8 @@ main(void)
             //     DrawRectangleLines(250 + 21*i, 205, 20, 20, MAROON);
             // }
 
-            DrawTextureRec(helicopter_texture, frame_rec, position, WHITE);  // Draw part of the texture
+            //DrawTextureRec(helicopter_texture, frame_rec, position, WHITE);
+            DrawTexturePro(helicopter_texture, frame_rec, frame_rec, (Vector2){0, 0}, WHITE);
 
         EndDrawing();
     }
