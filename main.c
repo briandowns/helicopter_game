@@ -28,7 +28,7 @@ DrawTime()
 int
 main(void)
 {
-    InitWindow(1280, 900, "Helicopter");
+    InitWindow(1660, 900, "Helicopter");
     InitAudioDevice();
 
     // spritesheet
@@ -36,10 +36,6 @@ main(void)
     // height: 320
     // sprite: w 226 x h 80
     Texture2D helicopter_texture = LoadTexture("assets/helicopter-spritesheet.png");
-
-    Texture2D background = LoadTexture("assets/background/Layers/sky.png");
-    // Texture2D midground = LoadTexture("resources/cyberpunk_street_midground.png");
-    // Texture2D foreground = LoadTexture("resources/cyberpunk_street_foreground.png");
 
     Sound sound = LoadSound("");
     Music music = LoadMusicStream("assets/sound/airwolf.mp3");
@@ -61,7 +57,7 @@ main(void)
 
     // Camera2D camera = {0};
     // camera.target = position;
-    // camera.offset = (Vector2){ 1280/2.0f, 900/2.0f };
+    // camera.offset = (Vector2){ 1660/2.0f, 900/2.0f };
     // camera.rotation = 0.0f;
     // camera.zoom = 1.0f;
 
@@ -69,10 +65,10 @@ main(void)
     TmxMap* map = LoadTMX(tmx);
 
     Camera2D camera;
-    camera.zoom = 6.0f;
-    camera.target.x = (float)(map->width * map->tileWidth) / 2.0f;
-    camera.target.y = (float)(map->height * map->tileHeight) / 2.0f;
-    camera.offset.x = (float)1280 / 2.0f;
+    camera.zoom = 1.0f;
+    camera.target.x = (float)(map->width * map->tileWidth) / 8.0f;
+    camera.target.y = (float)(map->height * map->tileHeight) / 8.0f;
+    camera.offset.x = (float)1660 / 12.0f;
     camera.offset.y = (float)900 / 2.0f;
     camera.rotation = 0.0f;
 
@@ -91,10 +87,6 @@ main(void)
         //         is_in_menu = true;
         //     }
         // }
-
-        scrollingBack -= 0.1f;
-
-        if (scrollingBack <= -background.width*2) scrollingBack = 0;
 
         if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_M)) {
             // TODO: look into volume adjustment instead
@@ -154,15 +146,13 @@ main(void)
         }
 
         camera.target = position;
-        camera.offset = (Vector2){ 1280/2.0f, 900/2.0f };
+        camera.offset = (Vector2){ 1660/2.0f, 900/2.0f };
         float minX = 1000, minY = 1000, maxX = -1000, maxY = -1000;
 
         // draw section
         BeginDrawing();
-            ClearBackground(RAYWHITE);
+            ClearBackground(BLACK);
 
-            DrawTexture(background, 1280/2 - background.width/2, 900/2 - background.height/2, WHITE);
-            
             BeginMode2D(camera);
             {
                 //AnimateTMX(map);
@@ -176,7 +166,6 @@ main(void)
     }
 
     UnloadTMX(map);
-    UnloadTexture(background);
     UnloadTexture(helicopter_texture);
     StopMusicStream(music);
     CloseAudioDevice();
